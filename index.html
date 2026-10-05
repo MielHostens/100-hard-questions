@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="A 100-pair quiz that ranks the hard questions to talk about before you say yes.">
+<title>Hard Questions Quiz</title>
+<style>
+:root{--bg:#faf7f5;--card:#fff;--ink:#2b2522;--muted:#776c67;--line:#e6ddd8;--accent:#c9524b;--soft:#fbe9e7}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1817;--card:#262220;--ink:#f1ebe8;--muted:#a89d98;--line:#3d3633;--accent:#ef7d75;--soft:#3a2724}}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-text-size-adjust:100%}
+main{max-width:640px;margin:0 auto;padding:28px 16px 48px}
+h1{font-size:1.7rem;line-height:1.2;margin:0 0 .4em}
+h2{font-size:1.15rem;margin:1.8em 0 .6em}
+p,.muted{color:var(--muted)}
+.hidden{display:none!important}
+button{font:inherit;cursor:pointer;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:12px 18px;touch-action:manipulation}
+.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.link{background:none;border:0;color:var(--muted);padding:8px 0;text-decoration:underline}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin:6px 0 24px}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+.choices{display:grid;gap:12px}
+@media(min-width:600px){.choices{grid-template-columns:1fr 1fr}}
+.choice{text-align:left;padding:22px 20px;min-height:110px;font-size:1.08rem}
+@media(hover:hover){.choice:hover{border-color:var(--accent);background:var(--soft)}}
+.choice:focus-visible{border-color:var(--accent);outline:none}
+.row{display:grid;grid-template-columns:6.5rem 1fr 2.8rem;gap:10px;align-items:center;margin:8px 0}
+.row span:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.meter{height:10px;background:var(--line);border-radius:5px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:10px 0}
+summary{cursor:pointer;font-weight:600}
+ol{padding-left:2em;margin:.5em 0}
+li{margin:.4em 0}
+li.s2{font-weight:600}
+li.s0{color:var(--muted)}
+.dots{color:var(--accent);letter-spacing:1px;margin-right:6px;font-size:.8em}
+footer{margin-top:40px;font-size:.85rem}
+</style>
+</head>
+<body>
+<main>
+  <section id="intro">
+    <h1>Which hard questions matter most to you?</h1>
+    <p>You will see 100 pairs of topics. Each time, pick the one you most want to talk through with your partner. Go with your first feeling. No answer is wrong.</p>
+    <p>It takes about 10 minutes. Your answers save on this device, so you can stop and come back.</p>
+    <div class="actions">
+      <button class="primary" id="resume">Continue</button>
+      <button class="primary" id="start">Start</button>
+    </div>
+  </section>
+
+  <section id="quiz" class="hidden">
+    <div class="muted" id="count"></div>
+    <div class="progress"><i id="bar"></i></div>
+    <h2 style="margin-top:0">Which is more important for us to talk about?</h2>
+    <div class="choices">
+      <button class="choice" id="a"></button>
+      <button class="choice" id="b"></button>
+    </div>
+    <button class="link" id="back">Back</button>
+  </section>
+
+  <section id="result" class="hidden">
+    <h1>Your ranking</h1>
+    <p id="shared" class="hidden">These are someone else's results. Take the quiz yourself to compare.</p>
+    <p>Share of times you picked each area over another.</p>
+    <div id="ranking"></div>
+    <h2>Start with these</h2>
+    <p>You picked these questions both times they came up.</p>
+    <ol id="top"></ol>
+    <h2>All questions by area</h2>
+    <p><span class="dots">●●</span>picked twice <span class="dots">●○</span>once <span class="dots">○○</span>never</p>
+    <div id="detail"></div>
+    <div class="actions">
+      <button class="primary" id="share">Copy link to my results</button>
+      <button id="restart">Take the quiz again</button>
+    </div>
+  </section>
+
+  <footer class="muted">Questions paraphrased from <i>The Hard Questions</i> by Susan Piver.</footer>
+</main>
+
+<script>
+// Each question: [short statement shown in the quiz, full question shown in the results]
+const TOPICS = [
+  {name:"Home", qs:[
+    ["Our home's look and style","What should our home look like, inside and out? Which style do we like?"],
+    ["How many rooms we need and what each one is for","How many rooms do we need, and what is each room for?"],
+    ["How our home should feel when we walk in","What feeling do we want when we walk in the door?"],
+    ["Where we live and what surrounds us","Where is our home, and what surrounds it?"],
+    ["Apartment, house or townhouse","What kind of place is it: apartment, house or townhouse?"],
+    ["Who keeps the house clean, and how tidy we each like it","Who keeps the house and yard clean and organized? How different are our standards for tidiness?"],
+    ["Who shops, who cooks, and how often we eat out","Who shops for groceries and cooks? How often do we eat out?"],
+    ["Our bed and our bedroom","What do we sleep on, and what else goes in the bedroom?"],
+    ["How much of our income goes to our home","What share of our income will we spend on buying and running our home?"],
+    ["What we spend on furniture and who decides","How much will we spend on furniture, and who decides? Do we buy to last or plan to redecorate?"],
+    ["How long we stay in our current home","How long will we stay in our current or first home?"],
+    ["Whether we share a sense of style","Do we each have a sense of style? Do we share one?"],
+    ["Guests, roommates or pets living with us","Who else could live with us: guests, roommates, tenants or pets?"],
+    ["Our dream home","What is my wildest dream for our home?"]]},
+  {name:"Money", qs:[
+    ["What we earn together and who pays for what","How much do we earn together? Who covers which part, now and in 1, 5 and 10 years?"],
+    ["Whether our salaries cover our costs","Do our combined salaries cover our expenses?"],
+    ["What we spend now and what we want to spend","What are our spending categories? What do we spend in each, and what would we like to spend?"],
+    ["Our long-term income goal","What is our long-term income goal? When and how will we reach it, and through whose work?"],
+    ["What sits in our checking accounts","How much is in our checking accounts today?"],
+    ["What sits in our savings accounts","How much is in our savings accounts today?"],
+    ["Our investments and retirement funds","How much do we hold in stocks, annuities or retirement funds?"],
+    ["How much savings makes us feel safe","How much savings would make each of us feel safe? Who adds to it, how often and in what share?"],
+    ["Where we keep our money","Where do we keep our money?"],
+    ["Joint or separate bank accounts","Joint accounts, separate accounts or both?"],
+    ["Which purchases we decide together","Which purchases need a joint decision?"],
+    ["The amount above which we talk before buying","How do we decide on spending? Above what amount do we talk first?"],
+    ["Who keeps the books and pays the bills","Who keeps the household books and pays the bills?"],
+    ["Retirement plans, life insurance and beneficiaries","Who handles long-term planning like retirement and investments? How is life insurance set up, and who are the beneficiaries?"],
+    ["Money for dependents from a past relationship","If either of us has dependents from a past relationship, how much of our money goes to them? What role does the new spouse play?"],
+    ["Health insurance and existing conditions","How do we get health insurance? Does either of us have existing health conditions?"]]},
+  {name:"Work", qs:[
+    ["Our career goals for the next 15 years","What are our career goals for 1, 5 and 15 years from now?"],
+    ["Whether we are happy in our jobs","Is each of us happy in our current job? If not, what is wrong?"],
+    ["Our work hours, early starts and late nights","How many hours will each of us work, and when? Early starts or late nights?"],
+    ["Bringing work home","How much time outside the office goes to work? Do we work from home or bring work home?"],
+    ["The support we expect for each other's work","How do we each relate to the other's work? What support do you expect from me there?"],
+    ["When it is fine for one of us to stop working","If one of us stops working, when would that be acceptable?"],
+    ["How ambitious we each are","How ambitious is each of us? Are we comfortable with the other's level of ambition?"],
+    ["The support I need to grow in my career","What support do I need for my career goals: time, money, advice or training?"],
+    ["When and where we retire","When do we want to retire, where, and how will we spend that time?"]]},
+  {name:"Intimacy", qs:[
+    ["Feeling my partner's love in our sex life","Am I comfortable giving and receiving love sexually? Does my partner feel my love?"],
+    ["Enough affection and cuddling","Am I affectionate enough with my partner?"],
+    ["Feeling desired by my partner","Am I comfortable giving and receiving desire? Is our physical connection satisfying?"],
+    ["How often we have sex, and mismatched desire","Are we happy with how often we have sex? How do we cope with mismatched desire?"],
+    ["What we do if one of us is attracted to someone else","What happens if one of us is attracted to someone else?"],
+    ["Sexual safety, exploration and honest fantasies","How do we handle each other's sexual expectations, safety and exploration? Can I share my fantasies honestly?"],
+    ["The spiritual side of our sex life","Is there a spiritual side to our sexual relationship? How do we honor it?"]]},
+  {name:"Health", qs:[
+    ["Which meals we eat together","Which meals do we eat together?"],
+    ["Who does the food shopping","Who does the food shopping?"],
+    ["Who cooks","Who cooks?"],
+    ["Who cleans up after meals","Who cleans up?"],
+    ["Special diets and support for them","Does either of us have special dietary needs? Does the other support them?"],
+    ["How much time we spend exercising","How much time do we spend exercising, and how much would we like to?"],
+    ["How we each feel about our fitness","Are we each comfortable with our fitness and health? Any areas of concern?"],
+    ["Health conditions and family illnesses","Does either of us have health conditions or family illnesses?"],
+    ["Lifestyle changes or costs our health needs","Do our health needs require lifestyle changes or extra spending?"],
+    ["Feeling supported in our health","Do we each feel supported by the other in these areas?"],
+    ["Where our overall health could improve","Are we happy with our overall health? Where could we improve?"],
+    ["Habits that worry the other, like smoking","Does either of us have habits that worry the other, like smoking or poor diet?"]]},
+  {name:"Family", qs:[
+    ["What I like and dislike about my family","What do I like and dislike about my own family?"],
+    ["What you like and dislike about my family","What do you like and dislike about my family?"],
+    ["How close you are to my family","How close are you to my family? Do you or they want more or less closeness?"],
+    ["How often we see each family","What role does each family play in our life? How often do we visit, and for how long?"],
+    ["Our parents' role as grandparents","If we have children, what role will our parents play as grandparents?"],
+    ["Holidays with our parents' families","Which holidays and events do we spend with our parents' families, and how?"],
+    ["Our own holidays, birthdays and anniversaries","Which holidays and events matter for our own family? How do we celebrate birthdays and anniversaries?"]]},
+  {name:"Children", qs:[
+    ["Whether we have children","Will we have children together?"],
+    ["When to have children","If so, when?"],
+    ["How many children","How many?"],
+    ["How much children matter to each of us","How important is having children to each of us?"],
+    ["Adoption, fertility help or genetic testing","Should we consider adoption, fertility counseling or genetic testing?"],
+    ["Time off work and housework after a baby","How will a child change our life? Will we take time off or cut hours? Who will run the house?"],
+    ["Breastfeeding and feeding schedules","Will we breastfeed, and for how long? Will we follow a strict feeding schedule?"],
+    ["Food rules for our children","Will we set food rules for an older child?"],
+    ["How we discipline our children","How will we discipline our child? Who is stricter? How do we settle disagreements about it?"],
+    ["Time each of us spends with our kids","How much time will each of us spend with our children?"],
+    ["Time alone as a couple after kids","How much time will we spend alone as a couple?"],
+    ["Childcare and daycare","Who will care for our child if we both work? How do we feel about daycare?"],
+    ["Screen time and media limits for kids","Will we limit screens, music or books by content? Which content do we object to?"],
+    ["Raising our kids in a faith","Will we raise our children in a faith? What will we teach them about big life questions?"],
+    ["Being at peace with not having children","If we choose not to have children, are we both at peace with that? What if one of us changes their mind?"],
+    ["Time together with stepchildren","With children from past relationships, how much time will we spend together?"],
+    ["Roles of the birth parent and stepparent","What do the birth parent and stepparent each expect? What role will the stepparent play?"],
+    ["Helping a stepchild feel at home","How will a child from a past relationship find space and feel secure in the new home?"]]},
+  {name:"Community", qs:[
+    ["Who we see as a couple","Who do we socialize with as a couple?"],
+    ["How we meet new people","How do we meet new people?"],
+    ["How many friends we have and how busy we are","Are we happy with our circle of friends? Do we want more, or do we need to cut back?"],
+    ["The community each of us grew up in","Was either of us raised in an ethnic or religious community? What role does it play now?"],
+    ["The kind of community we want","What kind of community do we want? Close-knit or loose? Built on work, faith, culture or hobbies?"],
+    ["Who builds our social life","Which of us builds our social life? Who is more outgoing or needs more outside friends?"],
+    ["How my partner treats my friends","Do I like or resent how my partner treats my friends? Do any of my friendships threaten my partner?"],
+    ["My partner's need for outside friends","What friendships does my partner need outside our relationship? Can I support them?"],
+    ["Charities and causes we support","Do we support any charities or causes with money or time?"]]},
+  {name:"Spirituality", qs:[
+    ["Sharing a religion or congregation","Do we share a religion or belong to a congregation? If not, would joining one help us?"],
+    ["A shared practice like meditation or yoga","Do we share a spiritual practice like meditation or yoga? If not, would one help us?"],
+    ["Time spent on a personal spiritual practice","Does either of us have a personal practice? Is the time spent on it fine with the other?"],
+    ["Joining in each other's practice","How much support or participation does each of us want in the other's practice?"],
+    ["How we mark births and deaths","How do we mark births and deaths in our family?"],
+    ["The place of faith in our home","What role does faith or spirituality play in our home?"],
+    ["Religious holidays and rituals","Do we keep any rituals or religious holidays? Together or apart?"],
+    ["Burial and what happens to our bodies","Do we want to be buried, and where? If not, what should happen to our bodies?"]]}
+];
+
+const ALL = TOPICS.flatMap((T, t) => T.qs.map((_, q) => [t, q]));   // 100 questions as [topic, index]
+const KEY = "hq100";
+const $ = id => document.getElementById(id);
+const show = id => ["intro", "quiz", "result"].forEach(s => $(s).classList.toggle("hidden", s !== id));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const r = Math.random() * (i + 1) | 0; [a[i], a[r]] = [a[r], a[i]]; } return a; };
+const store = v => { try { v ? localStorage.setItem(KEY, JSON.stringify(v)) : localStorage.removeItem(KEY); } catch {} };
+let pairs = [], picks = [];
+
+// 100 pairs: two rounds where every question meets a question from another area.
+function buildPairs() {
+  const seen = new Set(), out = [];
+  for (let round = 0; round < 2; round++) {
+    for (;;) {
+      const s = shuffle(ALL.slice()), batch = [];
+      for (let i = 0; i < s.length; i += 2) {
+        const [a, b] = [s[i], s[i + 1]], k = [a + "", b + ""].sort().join("|");
+        if (a[0] === b[0] || seen.has(k)) break;
+        batch.push([a, b, k]);
+      }
+      if (batch.length === 50) { batch.forEach(([a, b, k]) => { seen.add(k); out.push(Math.random() < .5 ? [a, b] : [b, a]); }); break; }
+    }
+  }
+  return shuffle(out);
+}
+
+function start() { pairs = buildPairs(); picks = []; history.replaceState(null, "", location.pathname); show("quiz"); ask(); }
+
+function ask() {
+  const n = picks.length;
+  store({pairs, picks});
+  if (n === pairs.length) return finish();
+  const [a, b] = pairs[n];
+  $("a").textContent = TOPICS[a[0]].qs[a[1]][0];
+  $("b").textContent = TOPICS[b[0]].qs[b[1]][0];
+  $("count").textContent = `${n + 1} of ${pairs.length}`;
+  $("bar").style.width = `${n / pairs.length * 100}%`;
+  $("back").style.visibility = n ? "visible" : "hidden";
+}
+
+function choose(side) { if (picks.length < pairs.length) { picks.push(side); ask(); } }
+function back() { if (picks.length) { picks.pop(); ask(); } }
+
+// Score per question = times picked (0, 1 or 2). Stored in the link as 100 digits.
+function finish() {
+  const score = TOPICS.map(T => T.qs.map(() => 0));
+  pairs.forEach((p, i) => { const w = p[picks[i]]; score[w[0]][w[1]]++; });
+  store(null);
+  location.hash = "r=" + score.flat().join("");
+  render(score, false);
+}
+
+function render(score, shared) {
+  const rate = score.map(s => s.reduce((a, b) => a + b, 0) / (2 * s.length));
+  const rank = TOPICS.map((_, t) => t).sort((a, b) => rate[b] - rate[a]);
+  const dots = s => `<span class="dots">${"●".repeat(s)}${"○".repeat(2 - s)}</span>`;
+
+  $("ranking").innerHTML = rank.map(t =>
+    `<div class="row"><span>${TOPICS[t].name}</span><span class="meter"><i style="width:${rate[t] * 100}%"></i></span><span>${Math.round(rate[t] * 100)}%</span></div>`).join("");
+
+  const top = rank.flatMap(t => TOPICS[t].qs.map((q, i) => [t, i]).filter(([t, i]) => score[t][i] === 2));
+  $("top").innerHTML = top.map(([t, i]) => `<li>${TOPICS[t].qs[i][1]} <span class="muted">(${TOPICS[t].name})</span></li>`).join("")
+    || "<li>None this time. See the areas below.</li>";
+
+  $("detail").innerHTML = rank.map((t, r) => {
+    const order = TOPICS[t].qs.map((_, i) => i).sort((a, b) => score[t][b] - score[t][a] || a - b);
+    return `<details${r < 3 ? " open" : ""}><summary>${r + 1}. ${TOPICS[t].name} · ${Math.round(rate[t] * 100)}%</summary><ol>${
+      order.map(i => `<li value="${i + 1}" class="s${score[t][i]}">${dots(score[t][i])}${TOPICS[t].qs[i][1]}</li>`).join("")}</ol></details>`;
+  }).join("");
+
+  $("share").textContent = "Copy link to my results";
+  $("shared").classList.toggle("hidden", !shared);
+  $("share").classList.toggle("hidden", shared);
+  $("restart").textContent = shared ? "Take the quiz" : "Take the quiz again";
+  show("result");
+  scrollTo(0, 0);
+}
+
+async function share() {
+  try { await navigator.clipboard.writeText(location.href); $("share").textContent = "Link copied"; }
+  catch { prompt("Copy this link:", location.href); }
+}
+
+// On load: open a shared result link, or offer to continue a saved quiz.
+function load() {
+  const m = location.hash.match(/^#r=([012]{100})$/);
+  if (m) {
+    const d = m[1].split("").map(Number);
+    let i = 0;
+    return render(TOPICS.map(T => T.qs.map(() => d[i++])), true);
+  }
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY)); } catch {}
+  const ok = saved && Array.isArray(saved.pairs) && saved.pairs.length === 100 && saved.picks.length < 100;
+  $("resume").classList.toggle("hidden", !ok);
+  $("start").classList.toggle("primary", !ok);
+  if (ok) { $("start").textContent = "Start over"; $("resume").textContent = `Continue (${saved.picks.length} of 100 done)`;
+    $("resume").onclick = () => { ({pairs, picks} = saved); show("quiz"); ask(); }; }
+}
+
+$("start").onclick = $("restart").onclick = start;
+$("a").onclick = () => choose(0);
+$("b").onclick = () => choose(1);
+$("back").onclick = back;
+$("share").onclick = share;
+addEventListener("keydown", e => {
+  if ($("quiz").classList.contains("hidden")) return;
+  if (e.key === "1" || e.key === "ArrowLeft") choose(0);
+  if (e.key === "2" || e.key === "ArrowRight") choose(1);
+  if (e.key === "Backspace") back();
+});
+load();
+</script>
+</body>
+</html>
